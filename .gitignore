@@ -1,0 +1,585 @@
+precision      = 100;
+
+radial_gap     = 0.25 * 2;
+cube_gap       = 0.5 * 2;
+
+wall_thickness = 4;
+/*************************************************************************************************/
+/*************************************************************************************************/
+/************************************* <NEW BASE MODULES/> ***************************************/
+module cube_peg(length, width, height)
+{
+    cube(size = [length, width, height], center = true);
+}
+/*************************************************************************************************/
+module radial_peg(radius, height)
+{
+    cylinder(r = radius, h = height, $fn = precision, center = true);
+}
+/*************************************************************************************************/
+module cube_hole(length, width, height, wall)
+{
+    difference()
+    {
+        cube_peg(length + cube_gap + wall, width + cube_gap + wall, height);
+        cube_peg(length + cube_gap, width + cube_gap, height);
+    }
+}
+/*************************************************************************************************/
+module radial_hole(radius, height, wall)
+{
+    wall = wall/2;
+    difference()
+    {
+        radial_peg(radius + radial_gap + wall, height);
+        radial_peg(radius + radial_gap, height);
+    }
+}
+/*************************************************************************************************/
+module cube_lip(length_outer, length_inner, width_outer, width_inner, height)
+{
+    difference()
+    {
+        cube(size = [length_outer, width_outer, height], center = true);
+        cube(size = [length_inner, width_inner, height], center = true);
+    }
+}
+/*************************************************************************************************/
+module cube_lid(length_outer, length_inner, width_outer, width_inner, height)
+{
+    wall_size = 2;
+    difference()
+    {
+        cube(size = [length_outer + wall_size, width_outer + wall_size, height], center = true);
+        cube_lip(length_outer + cube_gap, length_inner - cube_gap, width_outer + cube_gap, width_inner - cube_gap, height);
+    }
+    translate([0, 0, -height])
+    cube(size = [length_outer + wall_size, width_outer + wall_size, height], center = true);
+}
+/*************************************************************************************************/
+module cube_cap(length_outer, width_outer, height, wall)
+{
+    difference()
+    {
+        cube_peg(length_outer + wall, width_outer + wall, height + wall);
+        translate([0, 0, -wall])
+        cube_peg(length_outer + cube_gap, width_outer + cube_gap, height);
+    }
+}
+/*************************************************************************************************/
+module radial_lip(radius_outer, radius_inner, height)
+{
+    difference()
+    {
+        cylinder(r = radius_outer, h = height, $fn = precision, center = true);
+        cylinder(r = radius_inner, h = height, $fn = precision, center = true);
+    }
+}
+/*************************************************************************************************/
+module radial_lid(radius_lip_outer, radius_lip_inner, height)
+{
+    wall_radius = 2;// This is how much material is on the outside of the cap: it has nothing to do with fit.
+    difference()
+    {
+      cylinder(r = radius_lip_outer + wall_radius, h = height, $fn = precision, center = true);
+      radial_lip(radius_lip_outer + radial_gap, radius_lip_inner - radial_gap, height);
+    }
+    translate([0, 0, -height])
+    cylinder(r = radius_lip_outer + wall_radius, h = height, $fn = precision, center = true);
+}
+/*************************************************************************************************/
+module radial_cap(radius_peg, height, wall)
+{
+    difference()
+    {
+        cylinder(r = radius_peg + wall, h = height + wall, $fn = precision, center = true);
+        translate([0, 0, wall/2])
+        radial_peg(radius_peg + radial_gap, height);
+    }
+}
+/************************************* </NEW BASE MODULES> *****************************************/
+/*********************************** <NEW COMPOSITE MODULES/> **************************************/
+/***************************************************************************************************/
+link_length           = 107;
+link_width            = 107;//102;
+link_height           = 25;//43;//25 is height up to seam, which would leave ports exposed
+link_vent             = 70;
+inner_wall_depth      = 2;
+bucky_cube_side       = 5;
+bucky_buffer          = 2;
+bucky_cylinder_radius = 2;
+bucky_cylinder_height = 48;
+bucky_plug_depth      = bucky_cube_side + bucky_buffer * 2 + 35;
+
+inner_wall = 4;
+chassis_hypotenuse = sqrt(pow(link_width + inner_wall, 2) + pow(link_length + inner_wall, 2))/2;
+
+//translate([0, 0, -link_height * 0.50])
+module link_holder_base(){
+    difference(){
+        difference(){
+            cube_peg(link_width + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+            translate([0, 0, inner_wall_depth/2 - cube_gap/2])
+            cube_peg(link_width + cube_gap, link_length + cube_gap, link_height + cube_gap);
+            translate([0, 0, -(link_height/2)])
+            cube_peg(link_vent, link_vent, inner_wall_depth);
+        }
+        for(i = [0:2:3]){
+            
+            rotate([0, 0, 90 * i])
+            translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, link_length/2 + inner_wall_depth + bucky_buffer, 0])
+            cube_peg(bucky_cube_side * 2 + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side * 2 + cube_gap);
+            /*
+            union(){
+                translate([bucky_cube_side * 0.5, 0, bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([-bucky_cube_side * 0.5, 0, bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([-bucky_cube_side * 0.5, 0, -bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([bucky_cube_side * 0.5, 0, -bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+            }*/
+            rotate([0, 0, 90*i])
+            translate([-(bucky_cube_side * 1.0 + bucky_cylinder_height/2), link_length/2 + inner_wall_depth + bucky_buffer, 0])
+            rotate([0, 90, 0])
+            radial_peg(bucky_cylinder_radius + radial_gap, bucky_cylinder_height + cube_gap);
+            
+            
+        }
+        
+        for(i = [1:2:3]){
+            
+            rotate([0, 0, 90 * i])
+            translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, link_width/2 + inner_wall_depth + bucky_buffer, 0])
+            cube_peg(bucky_cube_side * 2 + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side * 2 + cube_gap);
+            /*union(){
+                translate([bucky_cube_side * 0.5, 0, bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([-bucky_cube_side * 0.5, 0, bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([-bucky_cube_side * 0.5, 0, -bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+                translate([bucky_cube_side * 0.5, 0, -bucky_cube_side * 0.5])
+                cube_peg(bucky_cube_side + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side + cube_gap);
+            }*/
+            rotate([0, 0, 90*i])
+            translate([-(bucky_cube_side * 1.5 + bucky_cylinder_height/2), link_width/2 + inner_wall_depth + bucky_buffer, 0])
+            rotate([0, 90, 0])
+            radial_peg(bucky_cylinder_radius + radial_gap, bucky_cylinder_height + cube_gap);
+        }
+        bucky_socket_collection();
+    }
+}
+/***************************************************************************************************/
+module link_holder_prime(){
+    //Idea about putting internal IR for estimating self boundaries
+    /*
+    difference(){
+        
+        radial_peg(chassis_hypotenuse + bucky_cube_side/2 + cube_gap, link_height/2 + inner_wall);
+        radial_peg(chassis_hypotenuse + bucky_cube_side/2 + cube_gap - inner_wall*4, link_height/2 + inner_wall);
+        
+        translate([0, 0, inner_wall/2 - cube_gap/2])
+        cube_peg(link_width + cube_gap, link_length + cube_gap, link_height + cube_gap);
+        
+        for(i=[0:12]){
+            rotate([0, 0, 30 * i])
+            translate([chassis_hypotenuse - (bucky_cylinder_radius + bucky_buffer), 0, ( (link_height/2 + inner_wall)/2 - (bucky_cube_side * 2 + cube_gap)/2 ) ])
+            cube_peg(bucky_cube_side * 2 + cube_gap, bucky_cube_side * 2 + cube_gap, bucky_cube_side * 2 + cube_gap);
+            //translate([chassis_hypotenuse - (bucky_cylinder_radius + bucky_buffer), 0, ( (link_height + inner_wall) - (bucky_cylinder_height/2 + cube_gap) )/2 ])
+            //radial_peg(bucky_cylinder_radius + radial_gap, bucky_cylinder_height/2 + cube_gap);
+        }
+    }
+    translate([0, 0, (link_height/2)/2])*/
+    difference(){
+        cube_peg(link_width + inner_wall, link_length + inner_wall, link_height + inner_wall);
+        translate([0, 0, inner_wall/2 - cube_gap/2])
+        cube_peg(link_width + cube_gap, link_length + cube_gap, link_height + cube_gap);
+        translate([0, 0, -(link_height/2)])
+        cube_peg(link_vent, link_vent, inner_wall);
+    }
+    
+}
+/***************************************************************************************************/
+module bucky_cube_plug(){
+    difference(){
+        //Plug case
+        cube_peg( (bucky_cube_side + bucky_buffer) * 2, 35/2 - bucky_buffer, bucky_cube_side * 2 + bucky_buffer);
+        //Magnet (small)
+        translate([0, -(35/4 - bucky_cube_side - cube_gap), 0])        
+        cube_peg(bucky_cube_side * 2 + cube_gap, bucky_cube_side + cube_gap, bucky_cube_side * 2 + cube_gap);
+     
+        //translate([0,0,bucky_cube_side + cube_gap/2])
+        //cube_peg( (bucky_cube_side + bucky_buffer) * 2, 35/2 - bucky_buffer, bucky_cube_side * 2);
+    }
+}
+/***************************************************************************************************/
+module bucky_cylinder_plug(){
+    difference(){
+        //Plug case
+        cube_peg(bucky_cylinder_height + bucky_buffer * 2, 35/2 - bucky_buffer, bucky_cube_side * 2);
+        //Magnet (cylinder)    
+        translate([0, -(35/4 - bucky_cube_side - cube_gap), 0])
+        rotate([0, 90, 0])
+        radial_peg(bucky_cylinder_radius + radial_gap, bucky_cylinder_height + cube_gap);
+        
+        //translate([0, 0, bucky_cube_side])
+        //cube_peg(bucky_cylinder_height + bucky_buffer * 2, 35/2 - bucky_buffer, bucky_cube_side * 2);
+    }
+}
+/***************************************************************************************************/
+module bucky_plugs_x(){
+    translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, 0, 0])
+    bucky_cube_plug();
+    translate([-(bucky_cube_side * 1.0 + bucky_cylinder_height/2) - bucky_buffer, 0, 0])
+    bucky_cylinder_plug();
+}
+/***************************************************************************************************/
+module bucky_plugs_y(){
+    translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, 0, 0])
+    bucky_cube_plug();
+    translate([-(bucky_cube_side * 1.0 + bucky_cylinder_height/2), 0, 0])
+    bucky_cylinder_plug();
+}
+/***************************************************************************************************/
+module bucky_cube_socket(){
+    cube_peg( (bucky_cube_side + bucky_buffer) * 2 + cube_gap, 35/2 - bucky_buffer + cube_gap, bucky_cube_side * 2 + bucky_buffer + cube_gap);
+}
+/***************************************************************************************************/
+module bucky_cylinder_socket(){
+    cube_peg(bucky_cylinder_height + bucky_buffer * 2 + cube_gap, 35/2 - bucky_buffer + cube_gap, bucky_cube_side * 2 + cube_gap);
+}
+/***************************************************************************************************/
+module bucky_socket_collection(){
+    union(){
+        //Place sockets in x
+        for(i = [1:2:3]){
+            rotate([0, 0, 90 * i])
+            translate([0, link_width/2 + inner_wall_depth + bucky_buffer + bucky_plug_depth/4 + bucky_buffer/8 , 0]){
+                translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, 0, 0])
+                bucky_cube_socket();
+                //need an extra x translation term for bucky_buffer
+                translate([-(bucky_cube_side * 1.0 + bucky_cylinder_height/2) - bucky_buffer, 0, 0])
+                bucky_cylinder_socket();
+            }
+        }
+        //Place sockets in y
+        for(i = [0:2:3]){
+            rotate([0, 0, 90 * i])
+            translate([0, link_length/2 + inner_wall_depth + bucky_buffer + bucky_plug_depth/4 + bucky_buffer/8 , 0]){
+                translate([bucky_cube_side * 1.5 + bucky_cylinder_height/2, 0, 0])
+                bucky_cube_socket();
+                translate([-(bucky_cube_side * 1.0 + bucky_cylinder_height/2), 0, 0])
+                bucky_cylinder_socket();
+            }
+        }
+    }
+}
+/***************************************************************************************************/
+module attachment_base_slicer(){
+    translate([0, 0, bucky_plug_depth/4])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, (link_length + bucky_plug_depth + inner_wall_depth)/2, link_height/2 - inner_wall_depth);
+}
+/***************************************************************************************************/
+module attachment_base_x(){
+    difference(){
+        union(){
+            translate([0, -(link_length + bucky_plug_depth + inner_wall_depth)/2, 0])
+            difference(){   
+                radial_peg(sqrt(((link_width + bucky_plug_depth + inner_wall_depth) * (link_width + bucky_plug_depth + inner_wall_depth))  +    ((link_length + bucky_plug_depth + inner_wall_depth) * (link_length + bucky_plug_depth + inner_wall_depth)))/2 - radial_gap,    link_height + inner_wall_depth);
+                translate([0, -(link_length + bucky_plug_depth + inner_wall_depth)/2, 0])
+                cube_peg((link_width + bucky_plug_depth + inner_wall_depth) * 2, (link_length + bucky_plug_depth + inner_wall_depth)*2,      link_height + inner_wall_depth);
+            }
+            translate([0, -(35/2 - bucky_buffer)/2, 0])
+            bucky_plugs_x();
+        }
+        attachment_base_slicer();
+        mirror([0,0,1]) attachment_base_slicer();
+    }
+    
+    
+}
+/***************************************************************************************************/
+module attachment_base_y(){
+    difference(){
+        union(){
+            translate([0, -(link_length + bucky_plug_depth + inner_wall_depth)/2, 0])
+            difference(){
+                radial_peg(sqrt(((link_width + bucky_plug_depth + inner_wall_depth) * (link_width + bucky_plug_depth + inner_wall_depth))  +    ((link_length + bucky_plug_depth + inner_wall_depth) * (link_length + bucky_plug_depth + inner_wall_depth)))/2 - radial_gap,    link_height + inner_wall_depth);
+                translate([0, -(link_length + bucky_plug_depth + inner_wall_depth)/2, 0])
+                cube_peg((link_width + bucky_plug_depth + inner_wall_depth) * 2, (link_length + bucky_plug_depth + inner_wall_depth)*2,      link_height + inner_wall_depth);
+            }
+            translate([0, -(35/2 - bucky_buffer)/2, 0])
+            bucky_plugs_y();
+        }
+        attachment_base_slicer();
+        mirror([0,0,1]) attachment_base_slicer();
+    }
+}
+/***************************************************************************************************/
+/***************************************************************************************************/
+num_spokes = 5;
+module wheg_spoke(){
+    spoke_radius = 4;
+
+    scale([2.5, 1/2, 1.5])
+    rotate_extrude(angle = 180, convexity = 10)
+    translate([10, 0, 0])
+    circle(r = spoke_radius, $fn = precision/10, center = true);
+}
+/***************************************************************************************************/
+module wheg_foot(){
+    scale([1, 2, 1.5])
+    sphere(r = 4, $fn = precision/5, center = true);
+}
+/***************************************************************************************************/
+module wheg_hub(){
+    hub_radius = 15/2;
+    hub_buffer = 0.5;
+    hub_height = 8;
+
+    radial_peg(hub_radius + hub_buffer + 1.5, 7.65);
+}
+/***************************************************************************************************/
+module wheg_hub_center(angle){
+    hub_radius = 15/2;
+    hub_buffer = 0.5;
+    hub_height = 8;
+    rotate([0, 0, angle])
+    cylinder(r = hub_radius + hub_buffer, h = hub_height, $fn = 6, center = true);
+}
+/***************************************************************************************************/
+module wheg_mesh(){
+    
+    difference(){
+        scale([1.125,0.5,1])
+        radial_peg(10, 8);
+        scale([1., 0.5, 1])
+        radial_peg(8, 8);
+        translate([2, 0, 0])
+        radial_peg(10, 8);
+    }
+}
+/***************************************************************************************************/
+module wheg(hub_angle){
+    difference(){
+        union(){
+            difference(){
+                union(){
+                    for(i = [0:num_spokes]){
+                        rotate([0, 0, 72 * i]){
+                            translate([30, 0, 0]){
+                                wheg_spoke();
+                                translate([32.5, 0, 0])
+                                wheg_foot();
+                            }
+                            rotate([0, 0, 36])
+                            translate([20, 0, 0])
+                            wheg_mesh();//Make sure this is correctly placed.
+                        }
+                        
+                    }
+                    
+                }   
+                wheg_hub_center(hub_angle);   
+                
+                
+            }
+            difference(){
+                wheg_hub();
+                wheg_hub_center(hub_angle);
+            }
+        }
+        
+        //Make sides flat
+        union(){
+            translate([0, 0, 5])
+            radial_peg(70, 2);
+            translate([0, 0, -5])
+            radial_peg(70, 2);
+        }
+    }
+}
+/***************************************************************************************************/
+/***************************************************************************************************/
+
+
+motor_mount_width     = 25.5;
+motor_mount_length    = 19;
+motor_mount_depth     = 2.5;
+screw_separation      = 12;//12mm apart.  So 6mm each from the center
+screw_inset           = 10;//10mm from the outer edge of the mount into the center of the screw hole
+screw_bottom_radius   = 2; //2mm for the radius of the bottom of the screw
+screw_top_radius      = 4; //4mm radius for the flat head
+wire_allowance        = 10;
+mount_to_end          = 23.5 + wire_allowance;
+motor_mount_thickness = motor_mount_depth * 2;
+
+module screw_hole(){
+    rotate([0,90,0])
+    translate([(motor_mount_length + mount_to_end)/2 - screw_inset, screw_separation/2,(motor_mount_length + motor_mount_depth)/2])
+    cylinder(r1 = screw_bottom_radius, r2 = screw_top_radius, h = motor_mount_depth, $fn = precision, center = true);
+}
+/***************************************************************************************************/
+module motor_mount(){
+    outer_x = motor_mount_length + motor_mount_thickness; 
+    outer_y = motor_mount_width + motor_mount_thickness;
+    inner_x = motor_mount_length + cube_gap; 
+    inner_y = motor_mount_width + cube_gap; 
+    motor_z = motor_mount_length + mount_to_end;
+    
+    arc_r   = motor_z * 0.40;
+    
+    rotate([0, 90, 0])
+    //translate([-(motor_mount_width + motor_mount_thickness*2)/2 + (link_height/2 - inner_wall_depth/2), 0, -(motor_mount_length + mount_to_end + 4)/2])
+    difference(){
+        cube_lip(outer_x, inner_x, outer_y, inner_y, motor_z);
+        screw_hole();
+        mirror([0,1,0])screw_hole();
+        translate([-(motor_mount_length + motor_mount_depth)/2, 0, 0])
+        cube_peg(motor_mount_depth, motor_mount_width + cube_gap, motor_mount_length + mount_to_end);
+    }
+   
+    difference(){
+        rotate([0, 90, 0])
+        translate([outer_x, 0, motor_z * 0.50 - motor_z * 0.30])
+        cube_peg(outer_x, outer_y, motor_z * 0.60);
+        
+        
+        rotate([90, 0, 0])
+        translate([-arc_r * 0.5, -(outer_x/2 + outer_x * 0.8375), 0])
+        union(){
+            radial_peg(arc_r, outer_y + cube_gap);
+            translate([0, -arc_r * 1, 0])
+            cube_peg(arc_r * 2, arc_r * 2, arc_r * 2 );
+        }
+        
+    }
+}
+/***************************************************************************************************/
+/***************************************************************************************************/
+/***************************************************************************************************/
+//Radial magnet holder experiment....
+/*
+difference(){ 
+    radial_peg(bucky_cylinder_radius + 0.25 + bucky_buffer*2, 4);
+    radial_peg(bucky_cylinder_radius + 0.25, 4);
+}
+//WINNER!
+translate([20, 0, 0])
+difference(){
+    radial_peg(bucky_cylinder_radius + 0.50 + bucky_buffer*2, 4);
+    radial_peg(bucky_cylinder_radius + 0.50, 4);
+}*/
+/*
+//Wheg(s)
+rotate([0, 90, 0])
+translate([-(link_height + inner_wall*2 + motor_mount_length + motor_mount_depth)/2, 0, -(motor_mount_length + mount_to_end + chassis_hypotenuse/2)])
+//translate([-(chassis_hypotenuse - (motor_mount_length + mount_to_end)/2), 0, (link_height + motor_mount_length + motor_mount_depth)/2])
+rotate([0, 0, 36])
+wheg(0);
+*/
+
+//Main body
+link_holder_prime();
+translate([-(link_width + inner_wall + motor_mount_length + mount_to_end)/2, 0, (motor_mount_length + motor_mount_thickness) - inner_wall * 0.65]){
+    
+    motor_mount();
+    rotate([0, 90, 0])
+    translate([0, 0, -(motor_mount_length + mount_to_end + 8)/2])
+    rotate([0, 0, 36])
+    wheg(0);
+}
+mirror([1, 0, 0]){
+    translate([-(link_width + inner_wall + motor_mount_length + mount_to_end)/2, 0, (motor_mount_length + motor_mount_thickness) - inner_wall * 0.65])
+    motor_mount();
+}
+
+/*
+mag_x = - motor_mount_width/4;
+
+translate([-(chassis_hypotenuse + inner_wall), 0, motor_mount_length + motor_mount_thickness + inner_wall/2 + cube_gap/2]){
+    motor_mount();
+    
+    difference(){
+        translate([-(motor_mount_length * 2 - mount_to_end)/2, 0, -bucky_cylinder_height/2])
+        cube_peg(motor_mount_length, motor_mount_width + motor_mount_depth * 2, (link_height + inner_wall));
+            
+        translate([-motor_mount_width/4, 0, - bucky_cylinder_height/2])
+        radial_peg(bucky_cylinder_radius + 0.50, bucky_cylinder_height/2);
+        translate([chassis_hypotenuse + (mag_x + bucky_buffer * 2) , 0, -(link_height + inner_wall + bucky_cylinder_height/2)/2])
+        radial_peg(chassis_hypotenuse, link_height + inner_wall);    
+    }
+}*/
+/*
+//Motor mounts
+translate([-(chassis_hypotenuse - (motor_mount_length + mount_to_end)/2), 0, (link_height + motor_mount_length + motor_mount_depth)/2])
+//rotate([180, 0, 0])
+motor_mount();
+
+mirror([1,0,0]){
+    translate([-(chassis_hypotenuse - (motor_mount_length + mount_to_end)/2), 0, (link_height + motor_mount_length + motor_mount_depth)/2])
+    //rotate([180, 0, 0])
+    motor_mount();
+}
+*/
+
+/*
+difference(){
+    rotate([0, 0, 90])
+    attachment_base_x();
+    translate([-(link_length/8  + bucky_plug_depth/16 + 2), 0, 0])
+    cube_peg(link_length/4 + bucky_plug_depth/8, motor_mount_width + motor_mount_thickness, motor_mount_length + motor_mount_thickness);
+}
+*/
+
+/*
+//Print ready?
+//4 x attachments..... (in halves)
+//rotate([0,0,90])
+translate([0, (link_width + bucky_plug_depth + inner_wall_depth)/2, 0])
+difference(){
+    attachment_base_x();
+    translate([0, 0, (link_height + inner_wall_depth)/2])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+    
+    translate([0, 0, -bucky_plug_depth/4])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, (link_length + bucky_plug_depth + inner_wall_depth)/2, link_height/2 - inner_wall_depth);
+}
+//rotate([180, 0, 90])
+translate([0, (link_width + bucky_plug_depth + inner_wall_depth)/2, 0])
+difference(){
+    attachment_base_x();
+    translate([0, 0, -(link_height + inner_wall_depth)/2])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+    
+    translate([0, 0, bucky_plug_depth/4])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, (link_length + bucky_plug_depth + inner_wall_depth)/2, link_height/2 - inner_wall_depth);
+}
+
+*/
+/*
+translate([0, (link_width + bucky_plug_depth + inner_wall_depth)/2, 0])
+difference(){
+    attachment_base_y();
+    translate([0, 0, (link_height + inner_wall_depth)/2])
+    cube_peg(link_length + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+}
+
+rotate([0,0,-90])
+translate([0, (link_width + bucky_plug_depth + inner_wall_depth)/2, 0])
+difference(){
+    attachment_base_x();
+    translate([0, 0, (link_height + inner_wall_depth)/2])
+    cube_peg(link_width + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+}
+rotate([0, 0, 180])
+translate([0, (link_width + bucky_plug_depth + inner_wall_depth)/2, 0])
+difference(){
+    attachment_base_y();
+    translate([0, 0, (link_height + inner_wall_depth)/2])
+    cube_peg(link_length + bucky_plug_depth + inner_wall_depth, link_length + bucky_plug_depth + inner_wall_depth, link_height + inner_wall_depth);
+}
+//.....4 x attachments
+
