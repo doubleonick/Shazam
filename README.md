@@ -70,8 +70,24 @@ machine and experiment with different packages and nodes without having to worry
 
 ### Generic Teleoperation
 
-[ros-teleop](https://github.com/ros-teleop/teleop_twist_keyboard), [jackal](https://github.com/jackal)
+There are two main ways to remotely control the Jackal: by joystick (e.g. PS4 remote), and by keyboard.  Whichever of these you pursue, until you have confirmed that you have your setup working, you should have the Jackal on blocks so the wheels will not spin on a surface.  
+For the joystick control, the companion computer and onboard computer have to have the same ROS_MASTER_URI (as explained above), and the Bluetooth on the companion must be turned on.  If the PS4 is not paired, turn it on, and hold down the PS and Share buttons (press the Share button slightly ahead of PS) until the front light turns steady blue.  You should then be able to hold down the left bumper and use the left joy to control the Jackal.  
+For keyboard control, you will need to open a terminal on your development/ground control computer and navigate to the source folder within a catkinized workspace.
+
+`cd ~/catkin_ws/src`
+
+Clone down the generic keyboard teleop package from [ros-teleop](https://github.com/ros-teleop/teleop_twist_keyboard):
+
+`git clone https://github.com/ros-teleop/teleop_twist_keyboard`
+
+Now you can run the keyboard node:
+
+`rosrun  teleop_twist_keyboard teleop_twist_keyboard.py`
+
+The package displays what happens in response to the relevant keys in the terminal.
+
+For reference of what you'll be interfacing with on the Jackal onboard, see the [jackal](https://github.com/jackal) repository, which has all the base Jackal packages.
 
 ### Intel RealSense
 
-[librealsense (drivers)](https://github.com/IntelRealSense/librealsense), [realsense-ros](https://github.com/IntelRealSense/realsense-ros), [SLAM](https://github.com/IntelRealSense/realsense-ros/wiki/SLAM-with-D435i), [rs_slam](https://intel.github.io/robot_devkit_doc/pages/rs_slam.html), [jackal-cartographer-navigation](https://github.com/jackal/jackal_cartographer_navigation), [pointcloud to laserscan wiki](http://wiki.ros.org/pointcloud_to_laserscan), [pointcloud to laserscan repo](https://github.com/ros-perception/pointcloud_to_laserscan/tree/foxy/launch)
+To get anything to work with the Intel RealSense D435i camera, you will need [librealsense (drivers)](https://github.com/IntelRealSense/librealsense), and [realsense-ros](https://github.com/IntelRealSense/realsense-ros).  The realsense-ros package will explain some basic nodes you can run to test out your camera setup.  Beyond that, it is fairly straight forward to expand into [SLAM](https://github.com/IntelRealSense/realsense-ros/wiki/SLAM-with-D435i), and [rs_slam](https://intel.github.io/robot_devkit_doc/pages/rs_slam.html).  If you are interested in running Google Cartographer with the depth camera and the Jackal, you should start with the package: [jackal-cartographer-navigation](https://github.com/jackal/jackal_cartographer_navigation).  As you look into this option for mapping, you will discover that you need to publish a /scan topic to get Cartographer to work, whereas the depth camera publishes a pointcloud message.  The  [pointcloud to laserscan wiki](http://wiki.ros.org/pointcloud_to_laserscan) gets into this, and ultimately, you'll need to work with the [pointcloud to laserscan repo](https://github.com/ros-perception/pointcloud_to_laserscan/tree/foxy/launch).  Once you prove to yourself that you can get a scan topic being published as the camera is running, you can move to integrate everything into Cartographer.
