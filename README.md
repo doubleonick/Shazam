@@ -56,7 +56,7 @@ The minimum to do here is to export the ROS Master and ROS IP values:
 - Look for the wireless IP address: this will be your ROS_IP
 - Open your WiFi Settings and find the network you set up in the "Network Configuration" section.  The IP address of this network will be your ROS_MASTER_URI
 - `export ROS_MASTER_URI=http://10.42.0.127:11311`
-- `epxort ROS_IP=10.212.199.192`
+- `export ROS_IP=10.212.199.192`
 
 You may also want to create an alias for connecting to the Jackal companion computer if the .bashrc file you are editing is on your dev computer:
 - `alias ssh-jackal-companion='ssh user1@10.212.199.192`
